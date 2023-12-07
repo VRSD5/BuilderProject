@@ -11,7 +11,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Paint;
 import javafx.stage.Stage;
 
+
 import java.util.ArrayList;
+
+//TODO HouseEditor and HouseImage as things to build from seperate builders
 
 public class Main extends Application {
     public static final int x_size = 250;
@@ -19,6 +22,9 @@ public class Main extends Application {
 
     private Director director = new Director();
     private House house;
+
+    private int style = 0;
+    private boolean floorMode = false;
 
     private Stage stage;
     private Scene scene;
@@ -40,7 +46,7 @@ public class Main extends Application {
         gc = canvas.getGraphicsContext2D();
         main.getChildren().addAll(canvas);
 
-        director.setBuilder(new HouseBuilder());
+        director.setBuilder(new HouseBuilder(0));
 
         scene = new Scene(main);
         scene.setOnKeyPressed(this::keyPress);
@@ -52,10 +58,28 @@ public class Main extends Application {
     }
 
     private void keyPress(KeyEvent event) {
+        System.out.println(event.getText());
         switch (event.getText()) {
-            case "B":
+            case "b":
+                house = director.assemble();
+                render();
+                break;
+            case "h":
+                style = (style + 1) % 4;
+                director.setBuilder(new HouseBuilder(style));
 
+                break;
+            case "r":
+                house = null;
+                prevs = new ArrayList<>();
+                prev = null;
+                director.reset();
+                director.setBuilder(new HouseBuilder(style));
+                break;
+            case "m":
+                floorMode = !floorMode;
         }
+        render();
     }
 
     private void mouseClick(MouseEvent event) {
@@ -69,7 +93,20 @@ public class Main extends Application {
         } else if (event.getButton() == MouseButton.SECONDARY) {
             if (prev != null) {
                 prevs.add(new double[]{event.getSceneX(), event.getSceneY()});
-                director.addWall(prevs, true, true);
+                if (scripts.distance(prevs.get(0), prevs.get(prevs.size() - 1)) <= 10) {
+                    if (floorMode) {
+                        director.addFloor(prevs, true);
+                    } else {
+                        director.addWall(prevs, true, true);
+                    }
+                } else {
+                    if (floorMode) {
+                        director.addFloor(prevs, false);
+                    } else {
+                        director.addWall(prevs, true, false);
+                    }
+                }
+
                 house = director.assemble();
                 prev = null;
                 prevs = new ArrayList<>();
@@ -86,23 +123,30 @@ public class Main extends Application {
     }
 
     private void strokeLineArray(double[] array) {
+        gc.setStroke(Paint.valueOf("black"));
+        gc.setLineWidth(1);
         gc.strokeLine(array[0], array[1], array[2], array[3]);
     }
 
     private void strokePointList(ArrayList<double[]> points) {
+        gc.setStroke(Paint.valueOf("black"));
+        gc.setLineWidth(1);
         for (int i = 0; i < points.size() - 1; i++) {
             gc.strokeLine(points.get(i)[0], points.get(i)[1], points.get(i + 1)[0], points.get(i + 1)[1]);
         }
     }
 
     private void render() {
-        gc.setFill(Paint.valueOf("white"));
-        gc.fillRect(0, 0, x_size, y_size);
 
-        strokePointList(prevs);
+
 
         if (house != null) {
             house.render(gc);
+        } else {
+            gc.setFill(Paint.valueOf("white"));
+            gc.fillRect(0, 0, x_size, y_size);
         }
+
+        strokePointList(prevs);
     }
 }

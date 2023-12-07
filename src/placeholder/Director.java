@@ -13,10 +13,19 @@ public class Director {
     private HouseBuilder builder;
 
     public void addWall(ArrayList<double[]> points, boolean exterior, boolean closed) {
-        walls.add(new Wall(points, exterior, closed));
-        if (exterior && closed) {
+        if (closed) {
+            points.set(points.size() - 1, points.get(0));
             floors.add(new Flooring(points));
+
         }
+        walls.add(new Wall(points));
+    }
+
+    public void addFloor(ArrayList<double[]> points, boolean closed) {
+        if (closed) {
+            points.set(points.size() - 1, points.get(0));
+        }
+        floors.add(new Flooring(points));
     }
 
     public void setBuilder(HouseBuilder builder) {
@@ -24,13 +33,16 @@ public class Director {
     }
 
     public House assemble() {
-        walls.forEach(x -> builder.addWall(x));
-        floors.forEach(x -> builder.addFloor(x));
+        walls.forEach(x -> builder.addWall(x.copy()));
+        floors.forEach(x -> builder.addFloor(x.copy()));
         return builder.build();
     }
 
 
-
+    public void reset() {
+        walls = new ArrayList<>();
+        floors = new ArrayList<>();
+    }
 
 
 
