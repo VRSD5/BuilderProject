@@ -24,7 +24,7 @@ public class Main extends Application {
     private House house;
 
     private int style = 0;
-    private boolean floorMode = false;
+    private int mode = 0;
 
     private Stage stage;
     private Scene scene;
@@ -46,7 +46,7 @@ public class Main extends Application {
         gc = canvas.getGraphicsContext2D();
         main.getChildren().addAll(canvas);
 
-        director.setBuilder(new HouseBuilder(0));
+        director.setBuilder(new EditorBuilder(0));
 
         scene = new Scene(main);
         scene.setOnKeyPressed(this::keyPress);
@@ -66,18 +66,22 @@ public class Main extends Application {
                 break;
             case "h":
                 style = (style + 1) % 4;
-                director.setBuilder(new HouseBuilder(style));
+                director.setBuilder(new EditorBuilder(style));
 
                 break;
             case "r":
                 house = null;
                 prevs = new ArrayList<>();
                 prev = null;
+                mode = 0;
                 director.reset();
-                director.setBuilder(new HouseBuilder(style));
+                director.setBuilder(new EditorBuilder(style));
                 break;
             case "m":
-                floorMode = !floorMode;
+                mode = (mode + 1) % 3;
+                System.out.println(mode);
+                break;
+
         }
         render();
     }
@@ -85,32 +89,44 @@ public class Main extends Application {
     private void mouseClick(MouseEvent event) {
         System.out.println(event.getButton());
         if (event.getButton() == MouseButton.PRIMARY) {
-
-            prev = new double[]{event.getSceneX(), event.getSceneY()};
-            prevs.add(new double[]{prev[0], prev[1]});
+            if (mode == 2 && house != null) {
+                prev = house.findNearestWall(new double[]{event.getSceneX(), event.getSceneY()});
+            } else {
+                prev = new double[]{event.getSceneX(), event.getSceneY()};
+                prevs.add(new double[]{prev[0], prev[1]});
+            }
 
 
         } else if (event.getButton() == MouseButton.SECONDARY) {
             if (prev != null) {
                 prevs.add(new double[]{event.getSceneX(), event.getSceneY()});
                 if (scripts.distance(prevs.get(0), prevs.get(prevs.size() - 1)) <= 10) {
-                    if (floorMode) {
-                        director.addFloor(prevs, true);
-                    } else {
-                        director.addWall(prevs, true, true);
+                    switch (mode) {
+                        case 0 -> director.addWall(prevs, true, true);
+                        case 1 -> director.addFloor(prevs, true);
+                        case 2 -> {
+                            if (house != null) {
+                                director.addWindow(prev, house.findNearestWall(new double[]{event.getSceneX(), event.getSceneY()}));
+                            }
+                        }
                     }
                 } else {
-                    if (floorMode) {
-                        director.addFloor(prevs, false);
-                    } else {
-                        director.addWall(prevs, true, false);
+                    switch (mode) {
+                        case 0 -> director.addWall(prevs, true, false);
+                        case 1 -> director.addFloor(prevs, false);
+                        case 2 -> {
+                            if (house != null) {
+                                director.addWindow(prev, house.findNearestWall(new double[]{event.getSceneX(), event.getSceneY()}));
+                            }
+                        }
                     }
-                }
 
+                }
                 house = director.assemble();
                 prev = null;
                 prevs = new ArrayList<>();
                 render();
+
             }
         }
     }
